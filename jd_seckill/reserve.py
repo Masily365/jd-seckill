@@ -85,7 +85,6 @@ class JDReserve:
             try:
                 self.session.get(url='https:' + reserve_url)
                 logger.info('预约成功，已获得抢购资格 / 您已成功预约过了，无需重复预约')
-                logger.info("123" + global_config.getRaw('messenger', 'server_chan_enable'))
                 if global_config.getRaw('messenger', 'server_chan_enable'):
                     success_message = "预约成功，已获得抢购资格 / 您已成功预约过了，无需重复预约"
                     send_wechat(success_message)

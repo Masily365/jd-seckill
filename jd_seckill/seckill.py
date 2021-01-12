@@ -33,17 +33,22 @@ class JDSeckill(object):
 
         # 初始化信息
         self.sku_id = global_config.getRaw('config', 'sku_id')
-        self.work_count = global_config.getRaw('config', 'work_count')
         self.seckill_num = int(global_config.getRaw('config', 'seckill_num'))
-        self.seckill_init_info = dict()
-        self.seckill_url = dict()
         self.seckill_order_data = dict()
-        self.timers = Timer()
 
         self.session = self.spider_session.get_session()
         self.user_agent = self.spider_session.user_agent
         self.nick_name = self.spider_session.get_username()
 
+        # 定时任务
+        self.timers = Timer()
+
+        # 抢购信息
+        self.seckill_url_flag = True
+        self.seckill_url = dict()
+        self.seckill_init_info = dict()
+
+        self.work_count = global_config.getRaw('config', 'work_count')
         self.running_flag = True
 
     @check_login_is_effective
@@ -58,18 +63,12 @@ class JDSeckill(object):
         # 2.检测配置时间是否符合要求
         logger.info("STEP-2:检测配置时间是否符合要求")
         self.seckill_can_still_running()
-        if not self.running_flag:
-            return
         # 3.判断当前时间是否到达抢购时间。没到达则挂起
         logger.info("STEP-3:判断当前时间是否到达抢购时间。没到达则挂起")
         self.timers.start()
         # 获取商品的抢购链接
         logger.info("STEP-4:获取商品的抢购链接")
-        try:
-            self.get_seckill_url()
-        except Exception as e:
-            logger.info('获取商品的抢购链接异常', e)
-            sys.exit(1)
+        self.get_seckill_url()
         # 访问商品抢购连接
         logger.info("STEP-5:访问商品抢购连接，结算页面，提交抢购")
         """
@@ -135,19 +134,24 @@ class JDSeckill(object):
             'Host': 'itemko.jd.com',
             'Referer': 'https://item.jd.com/{}.html'.format(self.sku_id),
         }
-        while self.running_flag:
-            resp = self.session.get(url=url, headers=headers, params=payload)
-            resp_json = parse_json(resp.text)
-            if resp_json.get('url'):
-                # https://divide.jd.com/user_routing?skuId=8654289&sn=c3f4ececd8461f0e4d7267e96a91e0e0&from=pc
-                router_url = 'https:' + resp_json.get('url')
-                # https://marathon.jd.com/captcha.html?skuId=8654289&sn=c3f4ececd8461f0e4d7267e96a91e0e0&from=pc
-                seckill_url = router_url.replace('divide', 'marathon').replace('user_routing', 'captcha.html')
-                logger.info("抢购链接获取成功: %s", seckill_url)
-                self.seckill_url[self.sku_id] = seckill_url
-            else:
-                logger.info("抢购链接获取失败，稍后自动重试")
-                wait_some_time()
+        while self.seckill_url_flag:
+            try:
+                resp = self.session.get(url=url, headers=headers, params=payload)
+                resp_json = parse_json(resp.text)
+                if resp_json.get('url'):
+                    # https://divide.jd.com/user_routing?skuId=8654289&sn=c3f4ececd8461f0e4d7267e96a91e0e0&from=pc
+                    router_url = 'https:' + resp_json.get('url')
+                    # https://marathon.jd.com/captcha.html?skuId=8654289&sn=c3f4ececd8461f0e4d7267e96a91e0e0&from=pc
+                    seckill_url = router_url.replace('divide', 'marathon').replace('user_routing', 'captcha.html')
+                    logger.info("抢购链接获取成功: %s", seckill_url)
+                    self.seckill_url[self.sku_id] = seckill_url
+                    self.seckill_url_flag = False
+                    logger.info("抢购链接获取成功: 开始抢购...")
+                else:
+                    logger.info("抢购链接获取失败，稍后自动重试")
+                    wait_some_time()
+            except Exception as e:
+                logger.info('获取商品的抢购链接异常', e)
 
     def request_seckill_url(self):
         """访问商品的抢购链接（用于设置cookie等"""
