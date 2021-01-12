@@ -2,18 +2,15 @@
 # -*- encoding=utf8 -*-
 
 import random
-import sys
 import time
-from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime, timedelta
 
 from lxml import etree
 
 from .config import global_config
 from .exception import SKException
-from .param import JDTdudfp
 from .logger import logger
 from .login import QRLogin
+from .param import JDTdudfp
 from .session import SpiderSession
 from .timer import Timer
 from .util import (
