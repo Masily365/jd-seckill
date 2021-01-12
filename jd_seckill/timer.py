@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- encoding=utf8 -*-
-
+import sys
 import time
 import requests
 import json
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .logger import logger
 from .config import global_config
@@ -55,6 +55,17 @@ class Timer(object):
             else:
                 time.sleep(self.sleep_interval)
 
-    def buytime_get(self):
+    def buy_time_get(self):
         """获取开始抢购的时间"""
         return self.buy_time
+
+    def seckill_can_running(self):
+        """用config.ini文件中的continue_time加上函数buy_time_get()获取到的buy_time，来判断抢购的任务是否可以继续运行"""
+        buy_time = self.buy_time_get()
+        continue_time = int(global_config.getRaw('config', 'continue_time'))
+        stop_time = datetime.strptime((buy_time + timedelta(minutes=continue_time)).strftime("%Y-%m-%d %H:%M:%S.%f"),
+                                      "%Y-%m-%d %H:%M:%S.%f")
+        current_time = datetime.now()
+        if current_time > stop_time:
+            logger.info('超过允许的运行时间，任务结束。')
+            sys.exit(-1)
