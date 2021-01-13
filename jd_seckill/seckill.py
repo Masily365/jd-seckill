@@ -92,17 +92,19 @@ class JDSeckill(object):
                 # 访问商品的抢购链接
                 seckill_url_success = self.request_seckill_url()
                 if not seckill_url_success:
-                    break
+                    continue
                 while self.running_flag:
                     checkout_page_success = self.request_seckill_checkout_page()
                     if not checkout_page_success:
-                        break
+                        continue
                     is_success = self.submit_seckill_order()
                     if not is_success:
-                        break
+                        wait_some_time()
+                        continue
                     else:
                         send_wechat("抢购成功")
                         self.running_flag = False
+                        break
             except Exception as e:
                 logger.info('抢购发生异常，稍后继续执行！e:{}'.format(e))
             wait_some_time()
