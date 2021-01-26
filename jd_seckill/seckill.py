@@ -7,7 +7,6 @@ import time
 from lxml import etree
 
 from .config import global_config
-from .exception import SKException
 from .logger import logger
 from .login import QRLogin
 from .param import JDTdudfp
@@ -65,8 +64,6 @@ class JDSeckill(object):
         self.timers.start()
         # 4.获取商品的抢购链接
         logger.info("STEP-4:获取商品的抢购链接")
-        # self.seckill_url[self.sku_id] =
-        # "https://marathon.jd.com/captcha.html?skuId=100012043978&sn=e8463bd236b887fb949ec8b9977dda12&from=pc"
         self.get_seckill_url()
         # 获取秒杀初始化信息（包括：地址，发票，token）
         logger.info("STEP-5:获取秒杀初始化信息,包括：地址，发票，token")
@@ -158,27 +155,28 @@ class JDSeckill(object):
 
     # 获取秒杀初始化信息（包括：地址，发票，token）return: 初始化信息组成的dict
     def get_seckill_init_info(self):
-        url = 'https://marathon.jd.com/seckillnew/orderService/pc/init.action'
-        logger.info('获取秒杀初始化信息...')
-        data = {
-            'sku': self.sku_id,
-            'num': self.seckill_num,
-            'isModifyAddress': 'false',
-        }
-        headers = {
-            'User-Agent': self.user_agent,
-            'Host': 'marathon.jd.com',
-        }
-        resp = self.session.post(url=url, data=data, headers=headers)
         finish = False
         while not finish:
+            url = 'https://marathon.jd.com/seckillnew/orderService/pc/init.action'
+            logger.info('获取秒杀初始化信息...')
+            data = {
+                'sku': self.sku_id,
+                'num': self.seckill_num,
+                'isModifyAddress': 'false',
+            }
+            headers = {
+                'User-Agent': self.user_agent,
+                'Host': 'marathon.jd.com',
+            }
+            resp = self.session.post(url=url, data=data, headers=headers)
+            logger.info("获取秒杀初始化信息:{}".format(resp))
             try:
                 resp_json = parse_json(resp.text)
                 self.seckill_init_info[self.sku_id] = resp_json
                 logger.info("获取秒杀初始化信息:地址，发票，token 等:{}".format(resp_json))
                 finish = True
             except Exception as e:
-                raise SKException('抢购失败，返回信息:{},e:{}'.format(resp.text[0: 128], e))
+                logger.info('获取秒杀初始化信息失败,e:{}'.format(e))
 
     # 访问商品的抢购链接（用于设置cookie等）
     def request_seckill_url(self):
